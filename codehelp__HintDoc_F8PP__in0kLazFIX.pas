@@ -14,6 +14,11 @@ unit codehelp__HintDoc_F8PP__in0kLazFIX;
 {%region ----- НАСТРОЙКИ ------------------------------------------ /fold}
 // "Ссылка" на указание местоположения в исходном коде.
 // использовать тег Таблицы для вывода кусков подсказок
+
+
+
+
+
     {$define codehelp__HintDoc_F8PP__in0kLazFIX__useTable}
 
 // выводить отладочную информацию
@@ -45,6 +50,13 @@ type
     procedure _TXT_res_Tbr_(var resText:string);
     procedure _TXT_res_added_(var resText:string; const addText:string);
     procedure _TXT_added_res_(const addText:string; var resText:string);
+
+  protected
+    {$ifdef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
+    function  _TXT_make_DBG_txt_(const text:string):string;
+    procedure _TXT_res_debug_(var resText:string; const dbgText:string); inline;
+    procedure _TXT_debug_res_(const dbgText:string; var resText:string); inline;
+    {$endif}
 
   //--- украшение выводимого HINT`а
   public
@@ -88,6 +100,33 @@ begin
    else
     if addText<>'' then resText:=resText+_cTxt_BrLineEnd+addText;
 end;
+
+
+{$ifdef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
+
+const
+
+ _cTXT_DBG_befo='<font size=-2 color=gray>';
+ _cTXT_DBG_afte='</font>';
+
+function TCodeHelpManager__HintDoc_F8PP__in0kLazIdeFIX._TXT_make_DBG_txt_(const text:string):string;
+begin
+    result:=_cTXT_DBG_befo+text+_cTXT_DBG_afte;
+end;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+procedure TCodeHelpManager__HintDoc_F8PP__in0kLazIdeFIX._TXT_res_debug_(var resText:string; const dbgText:string);
+begin
+    _TXT_res_added_(resText, _TXT_make_DBG_txt_(dbgText) );
+end;
+
+procedure TCodeHelpManager__HintDoc_F8PP__in0kLazIdeFIX._TXT_debug_res_(const dbgText:string; var resText:string);
+begin
+    _TXT_added_res_( _TXT_make_DBG_txt_(dbgText) ,resText);
+end;
+
+{$endif}
 
 // @ собрать строку.
 //   `addText+<br>+resText`
@@ -209,7 +248,7 @@ begin
         end;
     except
         {$ifDef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
-        on E:Exception do _TXT_res_added_(result,'[dbg]-_ink_getComment: ERR-EXCEPT'+'<br>'+LineEnding+E.ClassName+' : '+E.Message);
+        on E:Exception do _TXT_res_debug_(result,'[dbg]-_ink_getComment: ERR-EXCEPT'+'<br>'+LineEnding+E.ClassName+' : '+E.Message);
         {$endIf}
     end;
 end;
@@ -221,13 +260,13 @@ begin
     result:='';
     if Assigned(NodeInterface)      then begin
         {$ifDef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
-       _TXT_res_added_(result,'[dbg]-_ink_getComments:FROM NodeInterface');
+       _TXT_res_debug_(result,'[dbg]-_ink_getComments:FROM NodeInterface');
         {$endIf}
        _TXT_res_added_(result,_ink_getComment(Tool,NodeInterface));
     end;
     if Assigned(NodeImplementation) then begin
         {$ifDef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
-       _TXT_res_added_(result,'[dbg]-_ink_getComments:FROM NodeImplementation');
+       _TXT_res_debug_(result,'[dbg]-_ink_getComments:FROM NodeImplementation');
         {$endIf}
        _TXT_res_added_(result,_ink_getComment(Tool,NodeImplementation));
     end;
@@ -285,30 +324,34 @@ const ProcAttr_fndPROCEDURE= [
 begin
     TRY Result:='';
         if (Tool=nil)or(Node=nil) then exit;
+        {$ifDef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
+          _TXT_res_debug_(result,'[dbg]-fileNAME:'+Tool.MainFilename);
+        {$endIf}
+        Tool.MainFilename;
         if node.Desc in [ctnProcedure,ctnProcedureHead] then begin //< обработка процедур и функций
              // надо ТОЧНО спозиционироваться на ctnProcedure
              if Node.Desc=ctnProcedureHead then Node:=Node.Parent;
              if Node.Desc=ctnProcedure then begin
                  {$ifDef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
-                   _TXT_res_added_(result,'[dbg]-ProcHead:'+Tool.ExtractProcHead(Node,ProcAttr_fndPROCEDURE));
+                   _TXT_res_debug_(result,'[dbg]-ProcHead:'+Tool.ExtractProcHead(Node,ProcAttr_fndPROCEDURE));
                  {$endIf}
                  // в зависимости от место положения, исчем HintFromComment
                  case _ink_getNodePlace(Tool,node) of
                     ctnInterface: begin
                             {$ifDef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
-                           _TXT_res_added_(result,'[dbg]-from: ctnInterface');
+                           _TXT_res_debug_(result,'[dbg]-from: ctnInterface');
                             {$endIf}
                            _TXT_res_added_(result,_ink_getComments(Tool,node,Tool.FindCorrespondingProcNode(node,ProcAttr_fndPROCEDURE)));
                         end;
                     ctnImplementation: begin
                             {$ifDef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
-                           _TXT_res_added_(result,'[dbg]-from: ctnImplementation');
+                           _TXT_res_debug_(result,'[dbg]-from: ctnImplementation');
                             {$endIf}
                            _TXT_res_added_(result,_ink_getComments(Tool,Tool.FindCorrespondingProcNode(node,ProcAttr_fndPROCEDURE),node));
                         end
                     else begin //< к ТАКОМУ повороту мы не готовы, попросим Папу
                             {$ifDef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
-                           _TXT_res_added_(result,'[dbg]-from: err-wrong _ink_getNodePlace [used&nbsp;inherited&nbsp;GetPasDocCommentsAsHTML]');
+                           _TXT_res_debug_(result,'[dbg]-from: err-wrong _ink_getNodePlace [used&nbsp;inherited&nbsp;GetPasDocCommentsAsHTML]');
                             {$endIf}
                            _TXT_res_added_(result,inherited GetPasDocCommentsAsHTML(Tool,Node));
                         end
@@ -316,7 +359,7 @@ begin
              end
              else begin //< ошибочка вышла, пусть Папа отвечает
                  {$ifDef codehelp__HintDoc_F8PP__in0kLazFIX__DEBUG}
-                _TXT_res_added_(result,'[dbg]-from: ERR : not found Node.Desc=ctnProcedure [used&nbsp;inherited&nbsp;GetPasDocCommentsAsHTML]');
+                _TXT_res_debug_(result,'[dbg]-from: ERR : not found Node.Desc=ctnProcedure [used&nbsp;inherited&nbsp;GetPasDocCommentsAsHTML]');
                  {$endIf}
                  result:=inherited GetPasDocCommentsAsHTML(Tool,Node);
              end;
